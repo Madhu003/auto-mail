@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "linkedin": {
+      "command": "npx",
+      "args": ["-y", "REPLACE_WITH_LINKEDIN_MCP_SERVER_PACKAGE"],
+      "env": {
+        "LINKEDIN_EMAIL": "REPLACE_ME",
+        "LINKEDIN_PASSWORD": "REPLACE_ME"
+      }
+    }
+  }
+}
