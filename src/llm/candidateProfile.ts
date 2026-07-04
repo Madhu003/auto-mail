@@ -10,7 +10,7 @@ Phone: ${process.env.YOUR_PHONE || ""}
 LinkedIn: linkedin.com/in/madhu003
 
 Professional Summary:
-Senior Full Stack Engineer with 9 years of experience delivering end-to-end, highly scalable web
+Senior Full Stack Engineer with 9+ years of experience delivering end-to-end, highly scalable web
 applications, balancing robust backend infrastructure with high-performance frontend architectures.
 Proven track record designing highly available Node.js and Python (FastAPI) RESTful APIs, optimizing
 PostgreSQL/BigQuery databases, and managing secure cloud deployments on GCP. Equally adept at

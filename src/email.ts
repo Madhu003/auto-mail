@@ -62,7 +62,7 @@ export async function sendEmail(recipient: Recipient): Promise<EmailResult> {
   
   const mailOptions: SendMailOptions = {
     from: process.env.EMAIL_USER || '',
-    to: recipient.email,
+    to: "madhusudanarya003@gmail.com", //recipient.email,
     subject: subject,
     text: body,
     html: renderHtml(body),

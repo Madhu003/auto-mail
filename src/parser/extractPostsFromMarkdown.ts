@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { ChatOllama } from '@langchain/ollama';
 import { z } from 'zod';
 import { JobPost } from '../types.js';
 
@@ -48,11 +48,17 @@ export async function extractPostsFromMarkdown(): Promise<JobPost[]> {
     return [];
   }
 
-  console.log(`🤖 Asking ${process.env.GEMINI_MODEL || 'gemini-2.5-flash'} to parse posts out of the file...`);
+  console.log(`🤖 Asking local Ollama (${process.env.OLLAMA_MODEL || 'llama3.2:3b'}) to parse posts out of the file...`);
 
-  const model = new ChatGoogleGenerativeAI({
-    model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
-    apiKey: process.env.GEMINI_API_KEY,
+  const model = new ChatOllama({
+    model: process.env.OLLAMA_MODEL || 'llama3.2:3b',
+    baseUrl: process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434',
+    // Larger context than generateEmail.ts since this reads the whole pasted
+    // posts.md file, but still capped to keep RAM usage down; lowVram mode
+    // and a short keep-alive so the model unloads from memory after use.
+    numCtx: 4096,
+    lowVram: true,
+    keepAlive: '2m',
   });
   const structuredModel = model.withStructuredOutput(ResultSchema, { name: 'extracted_posts' });
 

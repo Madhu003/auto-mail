@@ -1,4 +1,4 @@
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
+import { ChatOllama } from "@langchain/ollama";
 import { z } from "zod";
 import { JobPost, EmailTemplate } from "../types.js";
 import { CANDIDATE_PROFILE, CANDIDATE_SIGNATURE } from "./candidateProfile.js";
@@ -21,20 +21,26 @@ function fixMissingWhitespace(text: string): string {
   return text.replace(/([,.!?:])(?=[A-Z])/g, "$1 ");
 }
 
-let model: ChatGoogleGenerativeAI | undefined;
+let model: ChatOllama | undefined;
 
-function getModel(): ChatGoogleGenerativeAI {
+function getModel(): ChatOllama {
   if (!model) {
-    model = new ChatGoogleGenerativeAI({
-      model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
-      apiKey: process.env.GEMINI_API_KEY,
+    model = new ChatOllama({
+      model: process.env.OLLAMA_MODEL || "llama3.2:3b",
+      baseUrl: process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434",
+      // Keep RAM usage down: small context window (less KV-cache memory),
+      // lowVram mode, and unload the model from memory shortly after use
+      // instead of Ollama's default 5m keep-alive.
+      numCtx: 2048,
+      lowVram: true,
+      keepAlive: "2m",
     });
   }
   return model;
 }
 
 export async function generateColdEmail(post: JobPost): Promise<EmailTemplate> {
-  console.log(`🤖 Generating cold email for ${post.contactEmail} via ${process.env.GEMINI_MODEL || "gemini-2.5-flash"}...`);
+  console.log(`🤖 Generating cold email for ${post.contactEmail} via local Ollama (${process.env.OLLAMA_MODEL || "llama3.2:3b"})...`);
 
   const structuredModel = getModel().withStructuredOutput(EmailSchema, {
     name: "cold_email",

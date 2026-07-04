@@ -3,6 +3,7 @@ import { transporter } from './config.js';
 import { findHiringPostsWithEmail } from './mcp/linkedinAgent.js';
 import { processPosts, printSummary } from './pipeline.js';
 import { closeMongo } from './db/mongo.js';
+import { ensureOllamaRunning } from './llm/ollamaCheck.js';
 
 dotenv.config();
 
@@ -25,6 +26,9 @@ async function runAgent(): Promise<void> {
     process.exit(1);
   }
   console.log('✅ All required env vars present\n');
+
+  await ensureOllamaRunning();
+  console.log();
 
   console.log('📡 Verifying email (SMTP) connection...');
   await transporter.verify();

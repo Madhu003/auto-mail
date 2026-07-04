@@ -55,7 +55,7 @@ export async function processPosts(posts: JobPost[]): Promise<PipelineSummary> {
 
     if (MONGO_ENABLED) {
       await saveEmailRecord({
-        to: post.contactEmail,
+        to: "madhusudanarya003@gmail.com", //post.contactEmail,
         subject,
         body,
         postLink: post.postLink,

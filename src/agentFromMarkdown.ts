@@ -3,6 +3,7 @@ import { transporter } from './config.js';
 import { extractPostsFromMarkdown } from './parser/extractPostsFromMarkdown.js';
 import { processPosts, printSummary } from './pipeline.js';
 import { closeMongo } from './db/mongo.js';
+import { ensureOllamaRunning } from './llm/ollamaCheck.js';
 
 dotenv.config();
 
@@ -10,10 +11,6 @@ async function runMarkdownAgent(): Promise<void> {
   console.log('🚀📄 Starting markdown-paste hiring-post agent...\n');
 
   console.log('🔐 Checking required environment variables...');
-  if (!process.env.ANTHROPIC_API_KEY) {
-    console.error('❌ Error: ANTHROPIC_API_KEY must be set in .env file');
-    process.exit(1);
-  }
   // MongoDB is temporarily disabled in src/pipeline.ts (MONGO_ENABLED = false),
   // so it's not required to run right now — re-add this check when re-enabled.
   // if (!process.env.MONGODB_URI) {
@@ -25,6 +22,9 @@ async function runMarkdownAgent(): Promise<void> {
     process.exit(1);
   }
   console.log('✅ All required env vars present\n');
+
+  await ensureOllamaRunning();
+  console.log();
 
   console.log('📡 Verifying email (SMTP) connection...');
   await transporter.verify();
