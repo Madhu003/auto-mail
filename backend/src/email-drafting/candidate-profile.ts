@@ -1,12 +1,13 @@
 // Summary of the candidate's background, used to ground LLM-generated cold emails.
 // Consolidated from resume content — edit this to keep generated emails accurate
 // to your actual experience as it evolves.
-export const CANDIDATE_PROFILE = `
-Name: ${process.env.YOUR_NAME || "Candidate"}
+export function buildCandidateProfile(name: string, email: string, phone: string): string {
+  return `
+Name: ${name}
 Title: Senior Software Engineer
 Location: Bengaluru, Karnataka, India
-Email: ${process.env.YOUR_EMAIL || ""}
-Phone: ${process.env.YOUR_PHONE || ""}
+Email: ${email}
+Phone: ${phone}
 LinkedIn: linkedin.com/in/madhu003
 
 Professional Summary:
@@ -60,6 +61,7 @@ Education: B.Tech. in Computer Science Engineering, Vyas Institute of Engineerin
 
 Available to join immediately. Open to relocation depending on the role.
 `.trim();
+}
 
 // Fixed email signature — appended programmatically after LLM generation so
 // the name/title/links are always exact, never left to the model to recall.

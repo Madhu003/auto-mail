@@ -18,41 +18,6 @@ function renderHtml(body: string): string {
     .replace(/\n/g, '<br>');
 }
 
-// Send an email with an arbitrary subject/body (used by the LinkedIn agent pipeline)
-export async function sendDynamicEmail(
-  to: string,
-  subject: string,
-  body: string,
-): Promise<EmailResult> {
-  const resumePath = process.env.RESUME_PATH
-    ? path.join(process.cwd(), process.env.RESUME_PATH)
-    : path.join(process.cwd(), 'src', 'Resume - 2025.pdf');
-
-  const mailOptions: SendMailOptions = {
-    from: process.env.EMAIL_USER || '',
-    to,
-    subject,
-    text: body,
-    html: renderHtml(body),
-    attachments: [
-      {
-        filename: path.basename(resumePath),
-        path: resumePath,
-      },
-    ],
-  };
-
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`✅ Email sent to ${to} - Message ID: ${info.messageId}`);
-    return { success: true, recipient: to, messageId: info.messageId || undefined };
-  } catch (error) {
-    const err = error as Error;
-    console.error(`❌ Failed to send email to ${to}:`, err.message);
-    return { success: false, recipient: to, error: err.message };
-  }
-}
-
 // Send email to a single recipient
 export async function sendEmail(recipient: Recipient): Promise<EmailResult> {
   const { subject, body } = createEmailTemplate(recipient);
