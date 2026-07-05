@@ -1,292 +1,70 @@
-# Auto-Mail - Cold Email Sender for Job Hunting
+# Auto-Mail — Cold Email Drafting Web App
 
-An automated TypeScript/Node.js application to send personalized cold emails to multiple recipients for job hunting purposes.
+Paste a LinkedIn hiring post, get a personalized cold email drafted by a local LLM, review/edit it, then send — one at a time or all at once.
 
-## Features
-
-- ✅ Send emails to multiple recipients automatically
-- ✅ Configurable email templates with personalization
-- ✅ Rate limiting with delay between emails
-- ✅ Support for Gmail, Outlook, Yahoo, and other email services
-- ✅ JSON-based recipient management
-- ✅ Environment variable configuration
-- ✅ Development mode with nodemon and TypeScript support
-- ✅ Fully typed with TypeScript for better development experience
-- 🤖 **Agent mode** — autonomously finds LinkedIn hiring posts, drafts a personalized cold email with Claude, and sends it (see [AI Agent Mode — Option A: LinkedIn MCP](#ai-agent-mode--option-a-linkedin-mcp) below)
-
-## AI Agent Mode — Option A: LinkedIn MCP
-
-On top of the static `recipients_final.json` sender above, `npm run agent` runs an autonomous pipeline: it browses LinkedIn for hiring posts, uses an LLM to write a personalized cold email per post, and keeps a MongoDB record so it never emails the same post twice.
-
-### Option A Flow
+## Architecture
 
 ```text
-1. 🔌 Connect to a LinkedIn MCP server (mcp-config.json)
-        │
-        ▼
-2. 🔎 A LangGraph ReAct agent (Claude + MCP tools) searches LinkedIn for
-      recent posts hiring for full stack / frontend / backend roles
-        │
-        ▼
-3. 🧹 Agent keeps only posts that explicitly mention an email address
-      to send a resume/CV or cold email to, and extracts:
-      postLink, postText, company, role, category, contactEmail
-        │
-        ▼
-   For each matching post:
-        │
-        ├─ 4. 🗄️  Check MongoDB (`sent_emails` collection) — has this
-        │        postLink already been emailed (status "sent")?
-        │        ├─ Yes → ⏭️  skip (already marked done)
-        │        └─ No  → continue
-        │
-        ├─ 5. ✍️  Claude drafts a personalized {subject, body} using the
-        │        post content + your candidate profile (src/llm/candidateProfile.ts)
-        │
-        ├─ 6. 📤 Send the email via nodemailer, with your resume attached
-        │
-        └─ 7. 💾 Save a record to MongoDB:
-                 { to, subject, body, postLink, status, sentAt, createdAt }
-        │
-        ▼
-8. 📊 Print a summary (sent / skipped / failed) when all posts are processed
+backend/    NestJS REST API — draft/send orchestration
+frontend/   React + Vite UI — paste posts, watch status, edit, send
 ```
 
-### Files involved
+- **Backend** (`backend/`) uses local Ollama (`llama3.2:3b` by default) to read a pasted LinkedIn post and, in one call, extract the hiring company/role/category/contact email and draft a subject+body cold email. Sending goes through nodemailer. Entries are stored in memory behind a repository interface (swappable for a real database later).
+- **Frontend** (`frontend/`) is a single page: paste a post → a card appears with an async "Working…" status → once drafted, edit the subject/body inline → Send (or Send All), each with its own async status.
 
-| File | Role |
-| --- | --- |
-| `mcp-config.json` | LinkedIn MCP server connection config (you fill in the real server) |
-| `src/mcp/linkedinAgent.ts` | Runs the LangGraph agent that searches LinkedIn via MCP tools |
-| `src/llm/generateEmail.ts` + `src/llm/candidateProfile.ts` | Drafts the cold email with Claude, grounded in your background |
-| `src/db/mongo.ts` | Dedup check (`alreadySentForPost`) + `saveEmailRecord` |
-| `src/email.ts` (`sendDynamicEmail`) | Sends the generated email with your resume attached |
-| `src/agent.ts` | Orchestrates the whole pipeline end-to-end — the entrypoint for `npm run agent` |
+## Prerequisites
 
-### Option A Setup before running
-
-1. Pick a LinkedIn MCP server package, `npm install` it, and fill in the `command`/`args`/`env` in `mcp-config.json`.
-2. Set `ANTHROPIC_API_KEY` in `.env`.
-3. Set `MONGODB_URI` (your cluster connection string) in `.env`.
-4. Fill in `YOUR_NAME`, `YOUR_PHONE`, and `RESUME_PATH` in `.env` if you want the generated emails and attachment to reflect you.
-
-### Option A Run it
-
-```bash
-npm run agent
-```
-
-## AI Agent Mode — Option B: Paste Posts Manually
-
-If you don't want to trust a LinkedIn scraper MCP server with your credentials, there's a second entrypoint that skips MCP entirely: you paste LinkedIn post text yourself into `posts.md`, and the agent extracts the structured data with Claude instead of an MCP browsing tool. **Everything downstream is identical** — same MongoDB dedupe, same email-drafting LLM call, same send + record-save pipeline (both entrypoints call the shared `src/pipeline.ts`).
-
-### Option B Flow
-
-```text
-1. 📄 You paste one or more raw LinkedIn post texts into posts.md
-        │
-        ▼
-2. 🤖 Claude parses posts.md and extracts only posts that are about
-      full stack / frontend / backend hiring AND mention a contact
-      email for a resume/CV or cold email
-        │
-        ▼
-3. 💾 Extracted posts are written to extracted_posts.json (for review),
-      each with a stable synthetic postLink (manual:<hash>) since pasted
-      posts have no real URL
-        │
-        ▼
-   Same as Option A from here — for each matching post:
-   🗄️  check Mongo dedupe → ✍️  draft email → 📤 send → 💾 save record
-        │
-        ▼
-4. 📊 Print a summary (sent / skipped / failed)
-```
-
-### Option B Setup before running
-
-1. Paste raw LinkedIn post text into `posts.md` (one or many posts — separators are optional, Claude splits them). Only posts mentioning a contact email will be picked up.
-2. Same `.env` requirements as Option A, minus the LinkedIn MCP server: `ANTHROPIC_API_KEY`, `MONGODB_URI`, `EMAIL_USER`/`EMAIL_PASSWORD`.
-3. Optionally set `POSTS_MARKDOWN_PATH` in `.env` if you want a different file than `posts.md`.
-
-### Option B Run it
-
-```bash
-npm run agent:md
-```
+- Node.js 18+
+- [Ollama](https://ollama.com) running locally with a model pulled: `ollama pull llama3.2:3b`
+- A Gmail (or other SMTP) account with an [App Password](https://support.google.com/accounts/answer/185833)
 
 ## Setup
 
-### 1. Install Dependencies
-
 ```bash
-npm install
+npm install   # installs both backend/ and frontend/ via npm workspaces
 ```
 
-### 2. Configure Email Credentials
-
-Copy the example environment file and configure it:
-
-```bash
-cp env.example .env
-```
-
-Edit `.env` and fill in your details:
+Configure `backend/.env` (already present in this repo, edit as needed):
 
 ```env
+PORT=3001
 EMAIL_SERVICE=gmail
-EMAIL_USER=your-email@gmail.com
+EMAIL_USER=you@gmail.com
 EMAIL_PASSWORD=your-app-password
+EMAIL_DELAY=1000
+OLLAMA_MODEL=llama3.2:3b
+OLLAMA_BASE_URL=http://127.0.0.1:11434
 YOUR_NAME=Your Name
-YOUR_EMAIL=your-email@gmail.com
-YOUR_PHONE=+1 (555) 123-4567
-EMAIL_SUBJECT=Application for Software Developer Position
-EMAIL_DELAY=5000
+YOUR_EMAIL=you@gmail.com
+YOUR_PHONE=+1 555 123 4567
+RESUME_PATH=./assets/Resume.pdf
 ```
 
-**Important Notes:**
-- For Gmail, you need to use an [App Password](https://support.google.com/accounts/answer/185833) instead of your regular password
-- For other email services, check their documentation for SMTP configuration
-- Keep your `.env` file secure and never commit it to version control
+Put your resume PDF at `backend/assets/` and point `RESUME_PATH` at it — it's attached to every sent email.
 
-### 3. Configure Recipients
+Edit `backend/src/email-drafting/candidate-profile.ts` to reflect your actual background — this grounds the LLM's drafts.
 
-Edit `recipients.json` with your target companies and email addresses. You can include custom `emailSubject` and `emailBody` for each recipient:
-
-```json
-[
-  {
-    "email": "hr@company1.com",
-    "name": "Hiring Manager",
-    "company": "Company 1",
-    "emailSubject": "Custom Subject Line for Company 1",
-    "emailBody": "I hope this email finds you well. I am writing to express my interest in software development opportunities at Company 1.\n\nI am a passionate developer with experience in modern web technologies and I believe my skills would be a great fit for your team.\n\nI have attached my resume for your review and would welcome the opportunity to discuss how my background and expertise can contribute to your organization.\n\nThank you for your time and consideration."
-  },
-  {
-    "email": "recruiting@company2.com",
-    "name": "Recruiting Team",
-    "company": "Company 2"
-  }
-]
-```
-
-**Note:** 
-- The `emailSubject` field is optional. If not provided, it will use `EMAIL_SUBJECT` from `.env` or a default subject.
-- The `emailBody` field is optional. If not provided, a default email body will be used.
-- The `recipients.json` file is pre-populated with 20 top companies and personalized cold emails for each.
-
-## Usage
-
-### Development Mode (with nodemon and TypeScript)
+## Run
 
 ```bash
-npm run dev
+npm run dev:backend    # NestJS on http://localhost:3001
+npm run dev:frontend   # Vite on http://localhost:5173 (proxies /api to the backend)
 ```
 
-This will automatically restart the script when you make changes to TypeScript files.
+Open `http://localhost:5173`, paste a post, and go.
 
-### Build TypeScript
+## API (backend)
 
-Compile TypeScript to JavaScript:
-
-```bash
-npm run build
-```
-
-### Production Mode
-
-First build the project, then run:
-
-```bash
-npm run build
-npm start
-```
-
-Or run type checking without building:
-
-```bash
-npm run type-check
-```
-
-## Customization
-
-### Email Template
-
-You can customize both the email subject and body for each recipient by adding `emailSubject` and `emailBody` fields in `recipients.json`. If not provided, default templates will be used. You can also modify the default template in `src/index.ts` by editing the `createEmailTemplate` function.
-
-### Email Delay
-
-Control the delay between emails (in milliseconds) using `EMAIL_DELAY` in `.env`:
-
-```env
-EMAIL_DELAY=5000  # 5 seconds between emails
-```
-
-## Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `EMAIL_SERVICE` | Email service provider | `gmail` |
-| `EMAIL_USER` | Your email address | Required |
-| `EMAIL_PASSWORD` | Your email password/app password | Required |
-| `YOUR_NAME` | Your full name | Optional |
-| `YOUR_EMAIL` | Your email for signature | Optional |
-| `YOUR_PHONE` | Your phone number | Optional |
-| `EMAIL_SUBJECT` | Email subject line | `Application for Software Developer Position` |
-| `EMAIL_DELAY` | Delay between emails (ms) | `5000` |
-
-## File Structure
-
-```
-auto-mail/
-├── src/
-│   └── index.ts      # Main email sending script (TypeScript)
-├── dist/             # Compiled JavaScript (generated after build)
-├── recipients.json   # List of email recipients
-├── package.json      # Project dependencies
-├── tsconfig.json     # TypeScript configuration
-├── .env              # Environment variables (create from env.example)
-├── .gitignore        # Git ignore file
-└── README.md         # This file
-```
-
-## Security Tips
-
-1. **Never commit `.env` file** - It contains sensitive credentials
-2. **Use App Passwords** - For Gmail and other services that support it
-3. **Rate Limiting** - Use appropriate delays to avoid being flagged as spam
-4. **Personalize Emails** - Generic emails are more likely to be marked as spam
-
-## Troubleshooting
-
-### Email not sending
-
-- Verify your email credentials are correct
-- For Gmail, ensure you're using an App Password
-- Check your email service's SMTP settings
-- Verify your network connection
-
-### Connection timeout
-
-- Check if your email service requires specific ports
-- Some networks block SMTP connections
-- Try using a different email service
-
-## License
-
-ISC
+| Method | Path | Purpose |
+| --- | --- | --- |
+| POST | `/api/entries` | Create an entry from raw post text; drafting runs async |
+| GET | `/api/entries` | List all entries |
+| GET | `/api/entries/:id` | Get one entry (for polling status) |
+| PATCH | `/api/entries/:id` | Edit `subject`/`body` before sending |
+| POST | `/api/entries/:id/send` | Send one entry; send runs async |
+| POST | `/api/entries/send-all` | Send all drafted-but-unsent entries sequentially, rate-limited by `EMAIL_DELAY` |
+| GET | `/api/health/ollama` | Check whether Ollama is reachable |
 
 ## Disclaimer
 
-Make sure to comply with:
-- CAN-SPAM Act (US)
-- GDPR (EU)
-- Your local email marketing regulations
-- Respect recipient preferences and unsubscribe requests
-
-Happy job hunting! 🚀
-
-['LinkedIn', 'Google', 'Microsoft', 'Meta', 'Amazon', 'Flipkart', 'Walmart Global Tech', 'Atlassian', 'Salesforce', 'Adobe', 'PayPal', 'Visa', 'D.E. Shaw', 'Goldman Sachs', 'Uber', 'Razorpay', 'CRED', 'Zerodha', 'MakeMyTrip', 'Swiggy']
-['Netflix', 'Apple', 'Airbnb', 'Stripe', 'Intuit', 'Oracle', 'VMware', 'Cisco', 'NVIDIA', 'Intel', 'Dropbox', 'Spotify', 'Coinbase', 'Shopify', 'Postman', 'Zoho', 'Freshworks', 'BrowserStack', 'Thoughtworks', 'Zoom', 'DoorDash', 'Instacart', 'PhonePe', 'Groww', 'Meesho', 'Nykaa', 'PolicyBazaar', 'Zomato', 'Paytm', 'Hasura', 'InMobi', 'FirstCry', 'Pinterest', 'Reddit', 'eBay', 'Roblox', 'Snapchat', 'Discord', 'Twitch', 'Square', 'Robinhood', 'Lyft', 'Yahoo', 'Qualcomm', 'AMD', 'BigBasket', 'Pine Labs', 'Ola', 'X (Twitter)', 'ByteDance', 'Slack']
-
-Notion, Uber, Dropbox, Spotify,MongoDB, Datadog, Cloudera
+Make sure to comply with the CAN-SPAM Act (US), GDPR (EU), and your local email marketing regulations. Respect recipient preferences and unsubscribe requests.

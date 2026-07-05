@@ -28,7 +28,7 @@ export function PostInputForm({ onAdd }: Props) {
   return (
     <form className="post-input-form" onSubmit={handleSubmit}>
       <textarea
-        placeholder="Paste one LinkedIn hiring post here…"
+        placeholder="Paste one LinkedIn hiring post here… (or paste several, separated by a line of dashes like --- or ------)"
         value={text}
         onChange={(e) => setText(e.target.value)}
         rows={6}

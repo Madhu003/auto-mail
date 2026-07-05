@@ -41,11 +41,11 @@ export class OllamaEmailDraftingService implements EmailDraftingService {
       this.model = new ChatOllama({
         model: this.config.get<string>('ollama.model'),
         baseUrl: this.config.get<string>('ollama.baseUrl'),
-        // 4096 gives headroom for the full candidate profile + post text +
-        // ~200-word output combined in one call (2048 was cutting it close,
-        // occasionally truncating to a near-empty body). Still lowVram/short
-        // keepAlive to bound RAM usage between requests.
-        numCtx: 4096,
+        // Lower numCtx trades reliability for RAM: 2048 saves memory over
+        // the 4096 we needed to stop occasional near-empty-body truncation
+        // (see MIN_BODY_LENGTH check below, which now guards against that).
+        // Raise back to 4096 if generation failures show up in practice.
+        numCtx: 2048,
         lowVram: true,
         keepAlive: '2m',
       });

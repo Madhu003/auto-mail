@@ -15,5 +15,5 @@ export default () => ({
     email: process.env.YOUR_EMAIL || '',
     phone: process.env.YOUR_PHONE || '',
   },
-  resumePath: process.env.RESUME_PATH || '../src/Resume - 2026.pdf',
+  resumePath: process.env.RESUME_PATH || './assets/Resume - 2026.pdf',
 });

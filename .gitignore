@@ -6,5 +6,4 @@ dist/
 *.tsbuildinfo
 
 # PII / real contact data — never commit
-src/Resume*.pdf
-recipients_final.json
+backend/assets/Resume*.pdf

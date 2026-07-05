@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { entriesApi } from '../api/entries';
 import { Entry } from '../types/entry';
 import { usePolling } from './usePolling';
+import { splitPosts } from '../utils/splitPosts';
 
 const POLL_INTERVAL_MS = 1500;
 
@@ -26,9 +27,24 @@ export function useEntries() {
   // Auto-stops when nothing is in flight, resumes once something is.
   usePolling(refresh, hasPending ? POLL_INTERVAL_MS : null);
 
+  // A pasted blob may contain multiple posts separated by a dashed delimiter
+  // (---, ------, etc) — one entry gets created per post found. Uses
+  // allSettled so one bad post in a batch doesn't lose the rest.
   const addEntry = useCallback(async (rawPostText: string) => {
-    const created = await entriesApi.create(rawPostText);
-    setEntries((prev) => [created, ...prev]);
+    const posts = splitPosts(rawPostText);
+    const results = await Promise.allSettled(posts.map((post) => entriesApi.create(post)));
+
+    const created = results
+      .filter((r): r is PromiseFulfilledResult<Entry> => r.status === 'fulfilled')
+      .map((r) => r.value);
+    setEntries((prev) => [...created, ...prev]);
+
+    const failures = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
+    if (failures.length > 0) {
+      throw new Error(
+        `${created.length} of ${posts.length} post(s) added — ${failures.length} failed: ${failures[0].reason?.message ?? 'unknown error'}`,
+      );
+    }
   }, []);
 
   const updateEntry = useCallback(async (id: string, patch: { subject?: string; body?: string }) => {
