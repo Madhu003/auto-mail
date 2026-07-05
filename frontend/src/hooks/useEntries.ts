@@ -62,5 +62,30 @@ export function useEntries() {
     await refresh();
   }, [refresh]);
 
-  return { entries, loaded, addEntry, updateEntry, sendOne, sendAll };
+  const regenerateEntry = useCallback(async (id: string) => {
+    const updated = await entriesApi.regenerate(id);
+    setEntries((prev) => prev.map((e) => (e.id === id ? updated : e)));
+  }, []);
+
+  const deleteEntry = useCallback(async (id: string) => {
+    await entriesApi.remove(id);
+    setEntries((prev) => prev.filter((e) => e.id !== id));
+  }, []);
+
+  const deleteAllEntries = useCallback(async () => {
+    await entriesApi.removeAll();
+    setEntries([]);
+  }, []);
+
+  return {
+    entries,
+    loaded,
+    addEntry,
+    updateEntry,
+    sendOne,
+    sendAll,
+    regenerateEntry,
+    deleteEntry,
+    deleteAllEntries,
+  };
 }

@@ -60,6 +60,40 @@ export class EntriesService {
     }
   }
 
+  // Resets the entry back to a pending draft and re-runs generation from the
+  // same raw post text — for when a draft came out wrong or generation
+  // failed and the user wants another attempt.
+  async regenerate(id: string): Promise<Entry> {
+    await this.getEntry(id); // 404s if missing
+
+    const pending = await this.repo.update(id, {
+      generationStatus: 'pending',
+      generationError: undefined,
+      company: undefined,
+      role: undefined,
+      category: undefined,
+      contactEmail: undefined,
+      subject: undefined,
+      body: undefined,
+      sendStatus: 'idle',
+      sendError: undefined,
+      sentAt: undefined,
+      updatedAt: now(),
+    });
+
+    void this.runGeneration(id);
+    return pending!;
+  }
+
+  async deleteEntry(id: string): Promise<void> {
+    const deleted = await this.repo.delete(id);
+    if (!deleted) throw new NotFoundException(`Entry ${id} not found`);
+  }
+
+  async deleteAllEntries(): Promise<void> {
+    await this.repo.deleteAll();
+  }
+
   async listEntries(): Promise<Entry[]> {
     return this.repo.findAll();
   }

@@ -27,4 +27,12 @@ export class InMemoryEntryRepository implements EntryRepository {
     this.entries.set(id, updated);
     return updated;
   }
+
+  async delete(id: string): Promise<boolean> {
+    return this.entries.delete(id);
+  }
+
+  async deleteAll(): Promise<void> {
+    this.entries.clear();
+  }
 }

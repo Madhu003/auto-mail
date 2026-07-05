@@ -10,4 +10,6 @@ export interface EntryRepository {
   findAll(): Promise<Entry[]>;
   findById(id: string): Promise<Entry | undefined>;
   update(id: string, patch: Partial<Entry>): Promise<Entry | undefined>;
+  delete(id: string): Promise<boolean>;
+  deleteAll(): Promise<void>;
 }

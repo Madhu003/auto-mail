@@ -9,4 +9,7 @@ export const entriesApi = {
     apiClient.patch<Entry>(`/entries/${id}`, patch),
   send: (id: string) => apiClient.post<Entry>(`/entries/${id}/send`),
   sendAll: () => apiClient.post<{ triggered: number }>('/entries/send-all'),
+  regenerate: (id: string) => apiClient.post<Entry>(`/entries/${id}/regenerate`),
+  remove: (id: string) => apiClient.delete<void>(`/entries/${id}`),
+  removeAll: () => apiClient.delete<void>('/entries'),
 };

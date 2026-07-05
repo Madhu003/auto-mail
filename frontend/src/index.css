@@ -36,6 +36,11 @@ body {
   margin: 0;
 }
 
+.app__toolbar-actions {
+  display: flex;
+  gap: 10px;
+}
+
 .post-input-form {
   display: flex;
   flex-direction: column;
@@ -77,6 +82,31 @@ button:disabled {
   cursor: not-allowed;
 }
 
+.button--secondary {
+  background: #eef1f6;
+  color: #333;
+}
+
+.button--secondary:disabled {
+  background: #f2f3f5;
+  color: #a7adb6;
+}
+
+.button--danger {
+  background: #fbeaea;
+  color: #b3261e;
+}
+
+.button--danger:disabled {
+  background: #f2f3f5;
+  color: #a7adb6;
+}
+
+.button--small {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
 .entry-list {
   display: flex;
   flex-direction: column;
@@ -87,10 +117,57 @@ button:disabled {
   background: white;
   border: 1px solid #e2e4e8;
   border-radius: 10px;
-  padding: 16px;
+  overflow: hidden;
+}
+
+.entry-card__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.entry-card__toggle {
+  color: #6e7781;
+  width: 12px;
+  flex-shrink: 0;
+}
+
+.entry-card__title {
+  flex: 1;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entry-card__body {
+  padding: 0 16px 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  border-top: 1px solid #eef0f3;
+  padding-top: 14px;
+}
+
+.error-log summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: #b3261e;
+  font-weight: 500;
+}
+
+.error-log pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 12px;
+  background: #fbeaea;
+  color: #7a1c17;
+  padding: 8px 10px;
+  border-radius: 6px;
+  margin-top: 6px;
 }
 
 .entry-card__raw {
